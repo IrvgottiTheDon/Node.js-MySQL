@@ -17,7 +17,7 @@ var connection = mysql.createConnection({
 });
 connection.config
 //console.log(connection.config);
-var QRY = connection.query("select item_id as value, product_name as name from products", function (err, dataSet) {
+connection.query("select item_id as value, product_name as name from products", function (err, dataSet) {
   var dataString = JSON.stringify(dataSet)
   var dataParse = JSON.parse(dataString)
   // console.log(dataSet)
@@ -28,19 +28,46 @@ var QRY = connection.query("select item_id as value, product_name as name from p
 function selectProduct(selections) {
   inquirer.prompt([{
       type: "rawlist",
-      name: "product",
+      name: "item_id",
       choices: selections,
-      messages: "text",
+      message: "Select Product",
     },
     {
       type: "number",
-      name: "quantity",
-      messages: "text",
+      name: "order_quantity",
+      message: "Add Quantity",
     }
-  ]).then(function (resp) {
-    console.log(resp)
-  })
+  ]).then(function (resp){
+    processOrder(resp)
+    console.log("");
+  });
 }
+
+  function processOrder(resp){ 
+    console.log(resp)
+    qryOpt = [resp.order_quantity, resp.item_id]
+    console.log(qryOpt)
+    connection.query("SELECT stock_quantity FROM products WHERE item_id = ?", resp.item_id, function (err, dataset) {
+      if (err) {
+        connection.end();
+        return console.log(err)
+      }
+      
+      if (dataset[0].stock_quantity < resp.order_quantity){
+        Console.log("Insufficient quantity to process order.")
+        connection.end();
+        return false
+      }
+      var qry = connection.query("UPDATE products SET stock_quantity= stock_quantity - ? WHERE item_id = ?", qryOpt, function (err) {
+        console.log("Your Order will be Accepted")
+        connection.end()
+
+      });
+    })
+  }
+
+
+
 
 // // connect to the mysql server and sql database
 // connection.connect(function(err) {
